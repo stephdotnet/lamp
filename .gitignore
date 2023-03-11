@@ -1,0 +1,9 @@
+.DS_Store
+.idea
+/.env
+/.vscode
+/config/*
+/data/*
+/logs/*
+/www/*
+/buildtest
