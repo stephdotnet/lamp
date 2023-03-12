@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Define the path to the virtual host file
-VIRTUAL_HOST_FILE="$VHOSTS_DIR/default.conf"
+VIRTUAL_HOST_FILE="$VHOSTS_DIR/$CERTIFY_BASE_VIRTUAL_HOST"
 
 # Extract a list of domains from the virtual host file
 DOMAINS=$(grep ServerName "$VIRTUAL_HOST_FILE" | awk '{print $2}')

@@ -7,4 +7,4 @@ start:
 
 .PHONY: certs
 certs:
-	sh certify.sh
+	docker-compose exec webserver -it sh certify.sh
