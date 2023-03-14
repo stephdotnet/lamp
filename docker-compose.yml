@@ -44,7 +44,10 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
   redis:
+    build:
+      context: "./bin/redis"
+      args:
+        REDIS_PASSWORD: ${REDIS_PASSWORD-redis}
     container_name: "${COMPOSE_PROJECT_NAME}-redis"
-    image: redis:latest
     ports:
       - "127.0.0.1:${HOST_MACHINE_REDIS_PORT}:6379"
