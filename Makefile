@@ -11,11 +11,11 @@ build:
 
 .PHONY: php
 php:
-	docker-compose exec -it lamp-webserver bash
+	docker-compose exec webserver bash
 
 .PHONY: restart-apache
 restart-apache:
-	docker-compose exec -e webserver service apache2 restart
+	docker-compose exec webserver service apache2 restart
 
 .PHONY: certs
 certs:
