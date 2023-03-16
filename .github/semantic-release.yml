@@ -1,0 +1,34 @@
+name: Semantic Release
+
+on:
+  workflow_run:
+    workflows:
+      - "Build Docker Compose"
+    types:
+      - completed
+
+jobs:
+  run-after-build:
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Get Next Version
+        id: semver
+        uses: ietf-tools/semver-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1.12.0
+        with:
+          allowUpdates: true
+          draft: false
+          makeLatest: true
+          name: ${{ steps.semver.outputs.next }}
+          body: Changelog Contents
+          token: ${{ secrets.GITHUB_TOKEN }}
