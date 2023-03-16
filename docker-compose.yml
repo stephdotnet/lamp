@@ -52,3 +52,10 @@ services:
     container_name: "${COMPOSE_PROJECT_NAME}-redis"
     ports:
       - "127.0.0.1:${HOST_MACHINE_REDIS_PORT}:6379"
+  node:
+    image: node:18
+    container_name: "${COMPOSE_PROJECT_NAME}-node"
+    volumes:
+      - ${DOCUMENT_ROOT-./www}:/www
+    working_dir: /www
+    tty: ${NODE_TTY-false}

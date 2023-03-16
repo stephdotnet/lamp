@@ -1,6 +1,10 @@
 include .env
 export
 
+.PHONY: help
+help:
+	make -qp | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$$)/ {split($$1,A,/ /);print A[1]}' | sort
+
 .PHONY: start
 start:
 	docker-compose up -d
@@ -12,6 +16,10 @@ build:
 .PHONY: php
 php:
 	docker-compose exec webserver bash
+
+.PHONY: node
+node: ## [CMD=]
+	docker-compose run node ${CMD}
 
 .PHONY: restart-apache
 restart-apache:
