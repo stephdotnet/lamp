@@ -10,5 +10,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Create env vars
+        run: cp .env.example .env
+
       - name: Build Docker Compose
         run: docker-compose build
