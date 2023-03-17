@@ -93,5 +93,9 @@ RUN a2enmod ssl && a2enmod rewrite
 # Enable apache modules
 RUN a2enmod rewrite headers
 
+# Install certbot
+RUN apt-get update && \
+    apt-get install -y certbot python3-certbot-apache && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Cleanup
 RUN rm -rf /usr/src/*

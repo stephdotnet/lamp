@@ -1,0 +1,17 @@
+name: Build Docker Compose
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Create env vars
+        run: cp .env.example .env
+
+      - name: Build Docker Compose
+        run: docker-compose build

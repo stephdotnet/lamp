@@ -15,6 +15,7 @@ services:
       - ${DOCUMENT_ROOT-./www}:/var/www/html:rw
       - ${PHP_INI-./config/php/php.ini}:/usr/local/etc/php/php.ini
       - ${SSL_DIR-./config/ssl}:/etc/apache2/ssl/
+      - ${SSL_DIR-./config/ssl}/letsencrypt:/etc/letsencrypt/
       - ${VHOSTS_DIR-./config/vhosts}:/etc/apache2/sites-enabled
       - ${LOG_DIR-./logs/apache2}:/var/log/apache2
       - ${XDEBUG_LOG_DIR-./logs/xdebug}:/var/log/xdebug
@@ -44,7 +45,17 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
   redis:
+    build:
+      context: "./bin/redis"
+      args:
+        REDIS_PASSWORD: ${REDIS_PASSWORD-redis}
     container_name: "${COMPOSE_PROJECT_NAME}-redis"
-    image: redis:latest
     ports:
       - "127.0.0.1:${HOST_MACHINE_REDIS_PORT}:6379"
+  node:
+    image: node:18
+    container_name: "${COMPOSE_PROJECT_NAME}-node"
+    volumes:
+      - ${DOCUMENT_ROOT-./www}:/www
+    working_dir: /www
+    tty: ${NODE_TTY-false}
