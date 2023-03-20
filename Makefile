@@ -5,6 +5,10 @@ export
 help:
 	make -qp | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$$)/ {split($$1,A,/ /);print A[1]}' | sort
 
+.PHONY: init
+init:
+	scripts/init.sh
+
 .PHONY: start
 start:
 	docker-compose up -d
