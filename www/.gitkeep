@@ -1,0 +1,1 @@
+# Do not map any vhost directly to www, it could result to an security issue
