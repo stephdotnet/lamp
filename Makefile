@@ -9,6 +9,10 @@ help:
 init:
 	scripts/init.sh
 
+.PHONY: up
+up:
+	make start
+
 .PHONY: start
 start:
 	docker-compose up -d
