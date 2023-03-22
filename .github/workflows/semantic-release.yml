@@ -5,10 +5,14 @@ on:
       branches:
         - main
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   release:
     runs-on: ubuntu-latest
-      steps:
+    steps:
       - name: Checkout Code
         uses: actions/checkout@v2
 
@@ -27,4 +31,4 @@ jobs:
           makeLatest: true
           name: ${{ steps.semver.outputs.next }}
           body: Changelog Contents
-          token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN }}
