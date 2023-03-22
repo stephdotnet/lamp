@@ -1,16 +1,12 @@
 name: Semantic Release
 
 on:
-  workflow_run:
-    workflows:
-      - "Build Docker Compose"
-    types:
-      - completed
+  push:
+      branches:
+        - main
 
 jobs:
-  run-after-build:
     runs-on: ubuntu-latest
-    needs: build
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout Code
