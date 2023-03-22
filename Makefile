@@ -23,7 +23,7 @@ php:
 
 .PHONY: node
 node: ## [CMD=]
-	docker-compose run node sh -c ${CMD}
+	docker-compose run node sh -c "${CMD}"
 
 .PHONY: restart-apache
 restart-apache:
