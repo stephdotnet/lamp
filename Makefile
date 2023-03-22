@@ -9,6 +9,10 @@ help:
 init:
 	scripts/init.sh
 
+.PHONY: up
+up:
+	make start
+
 .PHONY: start
 start:
 	docker-compose up -d
@@ -19,11 +23,11 @@ build:
 
 .PHONY: php
 php:
-	docker-compose exec webserver bash
+	docker-compose exec webserver -u 1000 bash
 
 .PHONY: node
 node: ## [CMD=]
-	docker-compose run node sh -c ${CMD}
+	docker-compose run node sh -c "${CMD}"
 
 .PHONY: restart-apache
 restart-apache:
