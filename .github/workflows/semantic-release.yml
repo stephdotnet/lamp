@@ -11,6 +11,9 @@ concurrency:
 
 jobs:
   release:
+    permissions:
+      contents: write # to create a release (ncipollo/release-action)
+
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -29,6 +32,7 @@ jobs:
           allowUpdates: true
           draft: false
           makeLatest: true
-          name: ${{ steps.semver.outputs.next }}
-          body: Changelog Contents
-        token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.semver.outputs.nextStrict }}
+          name: ${{ steps.semver.outputs.nextStrict }}
+          generateReleaseNotes: true
+          token: ${{ secrets.GITHUB_TOKEN }}
