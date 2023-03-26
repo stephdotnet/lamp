@@ -23,7 +23,11 @@ build:
 
 .PHONY: php
 php:
-	docker-compose exec webserver -u 1000 bash
+	docker-compose exec -u www-data webserver bash
+
+.PHONY: php-su
+php-su:
+	docker-compose exec webserver bash
 
 .PHONY: node
 node: ## [CMD=]
