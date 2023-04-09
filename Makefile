@@ -17,13 +17,25 @@ up:
 start:
 	docker-compose up -d
 
+.PHONY: down
+down:
+	make stop
+
+.PHONY: stop
+stop:
+	docker-compose down
+
 .PHONY: build
 build:
 	docker-compose build
 
 .PHONY: php
 php:
-	docker-compose exec -u www-data webserver bash
+	docker-compose exec -u 1000 webserver bash
+
+.PHONY: php
+php-www:
+	docker-compose exec -u www-data webserver bash	
 
 .PHONY: php-su
 php-su:

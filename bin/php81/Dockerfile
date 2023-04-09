@@ -2,7 +2,7 @@ FROM php:8.1-apache-buster
 
 # Surpresses debconf complaints of trying to install apt packages interactively
 # https://github.com/moby/moby/issues/4032#issuecomment-192327844
- 
+
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Update
@@ -14,29 +14,32 @@ RUN apt-get -y update --fix-missing && \
 # Install useful tools and install important libaries
 RUN apt-get -y update && \
     apt-get -y --no-install-recommends install nano wget \
-dialog \
-libsqlite3-dev \
-libsqlite3-0 && \
+    dialog \
+    libsqlite3-dev \
+    libsqlite3-0 && \
     apt-get -y --no-install-recommends install default-mysql-client \
-zlib1g-dev \
-libzip-dev \
-libicu-dev && \
+    zlib1g-dev \
+    libzip-dev \
+    libicu-dev && \
     apt-get -y --no-install-recommends install --fix-missing apt-utils \
-build-essential \
-git \
-curl \
-libonig-dev && \ 
+    build-essential \
+    git \
+    curl \
+    libonig-dev && \ 
     apt-get install -y iputils-ping && \
     apt-get -y --no-install-recommends install --fix-missing libcurl4 \
-libcurl4-openssl-dev \
-zip \
-openssl && \
+    libcurl4-openssl-dev \
+    zip \
+    openssl && \
     rm -rf /var/lib/apt/lists/* && \
     curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Install redis
 RUN pecl install redis-5.3.3 && \
     docker-php-ext-enable redis
+
+# Install pcov
+RUN pecl install pcov && docker-php-ext-enable pcov
 
 # Install imagick
 RUN apt-get update && \
@@ -78,8 +81,8 @@ RUN docker-php-ext-install pdo_mysql && \
 # Install Freetype 
 RUN apt-get -y update && \
     apt-get --no-install-recommends install -y libfreetype6-dev \
-libjpeg62-turbo-dev \
-libpng-dev && \
+    libjpeg62-turbo-dev \
+    libpng-dev && \
     rm -rf /var/lib/apt/lists/* && \
     docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg && \
     docker-php-ext-install gd
