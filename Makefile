@@ -35,7 +35,7 @@ php:
 
 .PHONY: php
 php-www:
-	docker-compose exec -u www-data webserver bash	
+	docker-compose exec -u www-data webserver bash
 
 .PHONY: php-su
 php-su:
@@ -45,9 +45,8 @@ php-su:
 node: ## [CMD=]
 	docker-compose run node sh -c "${CMD}"
 
-.PHONY: restart-apache
-restart-apache:
-	docker-compose exec webserver service apache2 restart
+node-cli: ## [CMD=]
+	docker-compose exec -it node bash
 
 .PHONY: certs
 certs:
@@ -55,4 +54,8 @@ certs:
 
 .PHONY: certs-renew
 certs-renew:
-	docker-compose exec webserver certbot renew --dry-run
+	docker-compose exec webserver certbot renew
+
+.PHONY: apache-restart
+apache-restart:
+	docker-compose exec webserver service apache2 restart
