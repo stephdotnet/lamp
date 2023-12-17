@@ -13,9 +13,17 @@ init:
 up:
 	make start
 
+.PHONY: up
+up-build:
+	make start-build
+
 .PHONY: start
 start:
 	docker-compose up -d
+
+.PHONY: start-build
+start-build:
+	docker-compose up --build -d
 
 .PHONY: down
 down:
