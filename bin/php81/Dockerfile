@@ -28,6 +28,7 @@ RUN apt-get -y update && \
     libonig-dev && \
     apt-get install -y iputils-ping && \
     apt-get install -y libgmp-dev && \
+    apt-get install -y libxslt-dev && \
     apt-get -y --no-install-recommends install --fix-missing libcurl4 \
     libcurl4-openssl-dev \
     zip \
@@ -77,6 +78,7 @@ RUN docker-php-ext-install pdo_mysql && \
     docker-php-ext-install gettext && \
     docker-php-ext-install calendar && \
     docker-php-ext-install exif && \
+    docker-php-ext-install xsl && \
     docker-php-ext-install gmp
 
 
