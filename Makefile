@@ -19,11 +19,11 @@ up-build:
 
 .PHONY: start
 start:
-	docker-compose up -d
+	docker compose up -d
 
 .PHONY: start-build
 start-build:
-	docker-compose up --build -d
+	docker compose up --build -d
 
 .PHONY: down
 down:
@@ -31,39 +31,39 @@ down:
 
 .PHONY: stop
 stop:
-	docker-compose down
+	docker compose down
 
 .PHONY: build
 build:
-	docker-compose build
+	docker compose build
 
 .PHONY: php
 php:
-	docker-compose exec -u 1000 webserver bash
+	docker compose exec -u 1000 webserver bash
 
 .PHONY: php
 php-www:
-	docker-compose exec -u www-data webserver bash
+	docker compose exec -u www-data webserver bash
 
 .PHONY: php-su
 php-su:
-	docker-compose exec webserver bash
+	docker compose exec webserver bash
 
 .PHONY: node
 node: ## [CMD=]
-	docker-compose run node sh -c "${CMD}"
+	docker compose run node sh -c "${CMD}"
 
 node-cli: ## [CMD=]
-	docker-compose exec -it node bash
+	docker compose exec -it node bash
 
 .PHONY: certs
 certs:
-	docker-compose exec -e EMAIL_ADMIN=$(EMAIL_ADMIN) webserver sh /etc/apache2/ssl/certify.sh
+	docker compose exec -e EMAIL_ADMIN=$(EMAIL_ADMIN) webserver sh /etc/apache2/ssl/certify.sh
 
 .PHONY: certs-renew
 certs-renew:
-	docker-compose exec webserver certbot renew
+	docker compose exec webserver certbot renew
 
 .PHONY: apache-restart
 apache-restart:
-	docker-compose exec webserver service apache2 restart
+	docker compose exec webserver service apache2 restart

@@ -1,9 +1,7 @@
-version: "3"
-
 services:
   webserver:
     build:
-      context: ./bin/php81
+      context: ./bin/php82
     container_name: "${COMPOSE_PROJECT_NAME}-webserver"
     restart: "always"
     ports:
