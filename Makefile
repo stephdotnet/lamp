@@ -71,3 +71,7 @@ certs-renew:
 .PHONY: apache-restart
 apache-restart:
 	docker compose exec webserver service apache2 restart
+
+.PHONY: mailhog
+mailhog:
+	docker run -d -p 1025:1025 -p 8025:8025 mailhog/mailhog
