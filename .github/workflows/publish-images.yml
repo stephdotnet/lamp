@@ -3,7 +3,7 @@ name: Create and publish a Docker imag
 on:
   workflow_dispatch:
   push:
-    branches: ['release']
+    branches: ['main']
 
 env:
   REGISTRY: ghcr.io
