@@ -52,7 +52,7 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ matrix.image }}
+          subject-name: ${{ env.REGISTRY }}/stephdotnet/${{ matrix.image }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
