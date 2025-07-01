@@ -48,11 +48,14 @@ services:
       args:
         REDIS_PASSWORD: ${REDIS_PASSWORD-redis}
     container_name: "${COMPOSE_PROJECT_NAME}-redis"
+    restart: "always"
     ports:
       - "127.0.0.1:${HOST_MACHINE_REDIS_PORT}:6379"
   node:
     image: node:18
     container_name: "${COMPOSE_PROJECT_NAME}-node"
+    restart: "always"
+    init: true
     volumes:
       - ${DOCUMENT_ROOT-./www}:/www
     working_dir: /www
