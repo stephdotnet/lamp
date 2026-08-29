@@ -1,4 +1,7 @@
-FROM php:8.2-apache-buster
+# Debian 12 "bookworm". NE PAS revenir sur -buster : Debian 10 est EOL depuis
+# juin 2024 et ses paquets ont ete deplaces vers archive.debian.org, donc le
+# premier `apt-get update` part en 404 et tout rebuild echoue.
+FROM php:8.2-apache-bookworm
 
 # Surpresses debconf complaints of trying to install apt packages interactively
 # https://github.com/moby/moby/issues/4032#issuecomment-192327844
