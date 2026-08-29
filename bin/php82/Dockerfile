@@ -79,7 +79,8 @@ RUN docker-php-ext-install pdo_mysql && \
     docker-php-ext-install calendar && \
     docker-php-ext-install exif && \
     docker-php-ext-install xsl && \
-    docker-php-ext-install gmp
+    docker-php-ext-install gmp && \
+    docker-php-ext-install pcntl
 
 
 # Install Freetype
@@ -98,7 +99,9 @@ RUN mkdir -p /etc/apache2/ssl
 RUN a2enmod ssl && a2enmod rewrite
 
 # Enable apache modules
-RUN a2enmod rewrite headers
+# proxy/proxy_wstunnel: reverse-proxy websocket (Laravel Reverb & co)
+# expires/deflate: cache et compression des assets statiques cote origine
+RUN a2enmod rewrite headers proxy proxy_http proxy_wstunnel expires deflate
 
 # Install certbot
 RUN apt-get update && \

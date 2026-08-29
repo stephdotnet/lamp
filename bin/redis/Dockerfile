@@ -1,4 +1,4 @@
-FROM redis:latest
+FROM redis:7.2-alpine
 
 # Copy the Redis configuration file to the container
 COPY redis.conf /usr/local/etc/redis/redis.conf

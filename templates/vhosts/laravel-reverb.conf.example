@@ -1,0 +1,83 @@
+# ---------------------------------------------------------------------------
+# Vhost Laravel + Reverb (websockets) derriere Apache.
+#
+# A copier dans config/vhosts/default.conf et adapter le ServerName / le
+# dossier de l'application. config/vhosts/ est gitignore, ce fichier sert donc
+# de reference versionnee.
+#
+# Prerequis dans l'image php82 : a2enmod proxy proxy_http proxy_wstunnel
+# headers rewrite deflate (deja fait dans bin/php82/Dockerfile).
+#
+# ATTENTION : config/ssl/certify.sh lance `certbot certonly --apache`.
+# `certonly` OBTIENT le certificat mais n'ecrit ni ne modifie aucun vhost.
+# Il n'y a pas de -le-ssl.conf genere automatiquement : le bloc :443
+# ci-dessous est a ecrire a la main.
+#
+# Mise en place en deux temps :
+#   1. poser le bloc :80, `make apache-restart`, verifier en HTTP
+#   2. `make certs`, puis ajouter le bloc :443 et `make apache-restart`
+#
+# Si le fichier est edite depuis Windows (WinSCP), verifier l'absence de CRLF :
+#   head -c 32 config/vhosts/default.conf | xxd    # chercher des 0d 0a
+#   sed -i 's/\r$//' config/vhosts/default.conf
+# ---------------------------------------------------------------------------
+
+<VirtualHost *:80>
+    ServerName example.com
+
+    DocumentRoot ${APACHE_DOCUMENT_ROOT}/monapp/public
+
+    # Le challenge HTTP-01 de certbot doit rester accessible en clair,
+    # sinon les renouvellements echouent.
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}$1 [R=301,L]
+
+    <Directory ${APACHE_DOCUMENT_ROOT}/monapp/public>
+        AllowOverride all
+        Require all granted
+    </Directory>
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName example.com
+
+    DocumentRoot ${APACHE_DOCUMENT_ROOT}/monapp/public
+
+    SSLEngine on
+    SSLCertificateFile      /etc/letsencrypt/live/example.com/fullchain.pem
+    SSLCertificateKeyFile   /etc/letsencrypt/live/example.com/privkey.pem
+
+    # Logs dedies : sans ca, le vhost tombe dans le fourre-tout partage
+    # other_vhosts_access.log, commun a tous les sites de la machine.
+    # Le glob de /etc/logrotate.d/lamp les recupere automatiquement.
+    ErrorLog  ${APACHE_LOG_DIR}/example.com-error.log
+    CustomLog ${APACHE_LOG_DIR}/example.com-access.log combined
+
+    # Upgrade websocket -> conteneur Reverb, sur le reseau compose partage.
+    # Doit passer AVANT le front controller Laravel.
+    # Seul /app est proxyfie : /apps (API de publication d'evenements) ne doit
+    # pas etre expose, l'application le joint en direct par le reseau interne.
+    RewriteEngine On
+    RewriteCond %{HTTP:Upgrade} =websocket [NC]
+    RewriteRule ^/app/(.*) ws://reverb:8080/app/$1 [P,L]
+
+    # En-tetes de securite. A activer une fois le HTTPS confirme fonctionnel :
+    # le HSTS est memorise par les navigateurs et penible a annuler.
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Les assets Vite sont hashes dans leur nom, on peut cacher agressivement.
+    <Location /build>
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </Location>
+
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+
+    <Directory ${APACHE_DOCUMENT_ROOT}/monapp/public>
+        AllowOverride all
+        Require all granted
+    </Directory>
+</VirtualHost>
