@@ -1,0 +1,177 @@
+# ---------------------------------------------------------------------------
+# Multi-site production vhosts - EXAMPLE
+#
+# Copy to config/vhosts/default.conf and adapt. `config/` is gitignored, so your
+# real file with your real domains stays out of version control; this example is
+# the versioned reference.
+#
+# Requires, in the php82 image: `a2enmod ssl macro headers rewrite deflate` and
+# the /var/www/empty directory. Both are already handled in bin/php82/Dockerfile.
+#
+# Always validate before reloading:
+#     docker compose exec webserver apachectl -t
+#
+# Certificates: `make certs` reads the `Use RedirectSite` / `Use LaravelSite`
+# lines below, groups domains by certificate lineage and issues one certificate
+# per lineage. It does NOT read ServerName - with macros those are variables
+# ($domain, $from) or the placeholder hosts catchall.invalid / default.invalid.
+# A brand new site still needs a first manual certbot run, since a vhost cannot
+# be declared before its certificate exists. See the README, "Adding a site".
+# ---------------------------------------------------------------------------
+
+
+# ===========================================================================
+# 1. PORT 80 CATCH-ALL - keep this first
+# ===========================================================================
+# One block is enough for every site. With UseCanonicalName Off (the default),
+# %{HTTP_HOST} is the requested host, so this redirects each domain to its own
+# HTTPS counterpart. No need for a per-site :80 vhost.
+#
+# DocumentRoot is deliberately an EMPTY directory. A redirect-only vhost has no
+# reason to expose a document tree: should the RewriteRule ever gain an
+# exception, or be commented out while debugging, there is simply nothing to
+# serve. Never point this at an application directory - a Laravel app root
+# contains .env, .git/ and vendor/.
+#
+# The ACME exclusion keeps HTTP-01 challenges reachable in plain HTTP, which is
+# what lets `certbot certonly --webroot -w /var/www/empty` work for both new
+# certificates and renewals.
+<VirtualHost *:80>
+    ServerName catchall.invalid
+    DocumentRoot /var/www/empty
+
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}$1 [R=301,L]
+</VirtualHost>
+
+
+<IfModule mod_ssl.c>
+
+# ===========================================================================
+# 2. MACROS
+# ===========================================================================
+
+# Apex -> www redirect.
+#
+# $cert MUST cover $from. Browsers validate the certificate BEFORE following a
+# redirect, so a certificate that does not include $from produces a blocking TLS
+# error rather than a redirect. Issuing one certificate for both names (see the
+# README) keeps this simple: the same lineage works for both macros.
+<Macro RedirectSite $from $to $cert>
+    <VirtualHost *:443>
+        ServerName $from
+
+        RedirectMatch permanent ^/(.*) https://$to/$1
+
+        SSLEngine on
+        SSLCertificateFile      /etc/letsencrypt/live/$cert/fullchain.pem
+        SSLCertificateKeyFile   /etc/letsencrypt/live/$cert/privkey.pem
+        Include /etc/letsencrypt/options-ssl-apache.conf
+    </VirtualHost>
+</Macro>
+
+# A Laravel site.
+#
+# $approot is the application directory under ${APACHE_DOCUMENT_ROOT}; the
+# DocumentRoot is always $approot/public. Nested paths work, e.g. an API living
+# in www/myproject/api gives $approot = "myproject/api".
+<Macro LaravelSite $domain $approot $cert>
+    <VirtualHost *:443>
+        ServerName $domain
+        DocumentRoot ${APACHE_DOCUMENT_ROOT}/$approot/public
+
+        # Sandbox this app away from its neighbours: it can no longer read the
+        # other sites' files, and in particular not their .env.
+        #
+        # The trailing slash is not cosmetic - these are path PREFIXES, so
+        # "/myapp" without it would also match "/myapp-old".
+        #
+        # Known limits: open_basedir does not restrict exec()/shell_exec(), and
+        # with mod_php every vhost runs as www-data, so file ownership cannot
+        # separate applications. Real per-app isolation requires php-fpm pools.
+        php_admin_value open_basedir "${APACHE_DOCUMENT_ROOT}/$approot/:/tmp/:/usr/local/lib/php/:/dev/urandom"
+
+        # No PHP execution in upload directories: a poorly filtered upload
+        # landing as an executable .php file is the most common webshell route.
+        <Directory ${APACHE_DOCUMENT_ROOT}/$approot/public/uploads>
+            php_admin_flag engine off
+        </Directory>
+
+        <Directory ${APACHE_DOCUMENT_ROOT}/$approot/public>
+            AllowOverride all
+            Require all granted
+        </Directory>
+
+        # Per-site logs. Without these, everything lands in the shared
+        # other_vhosts_access.log and you cannot tell the sites apart.
+        ErrorLog  ${APACHE_LOG_DIR}/$domain-error.log
+        CustomLog ${APACHE_LOG_DIR}/$domain-access.log combined
+
+        # Browsers remember HSTS for the whole max-age and it is painful to
+        # undo. Enable this line only once HTTPS is confirmed working.
+        Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        Header always set X-Content-Type-Options "nosniff"
+        Header always set X-Frame-Options "SAMEORIGIN"
+        Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+        # Vite hashes asset filenames, so they can be cached aggressively.
+        <Location /build>
+            Header set Cache-Control "public, max-age=31536000, immutable"
+        </Location>
+        AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+
+        SSLEngine on
+        SSLCertificateFile      /etc/letsencrypt/live/$cert/fullchain.pem
+        SSLCertificateKeyFile   /etc/letsencrypt/live/$cert/privkey.pem
+        Include /etc/letsencrypt/options-ssl-apache.conf
+    </VirtualHost>
+</Macro>
+
+
+# ===========================================================================
+# 3. PORT 443 DEFAULT - keep this first among the :443 vhosts
+# ===========================================================================
+# The FIRST :443 vhost answers any request whose Host / SNI matches nothing,
+# typically a scanner hitting the bare IP. Without this block, that traffic is
+# served by your first real site. This one only ever returns 403, so the
+# certificate it presents is irrelevant - point it at any lineage you have.
+<VirtualHost *:443>
+    ServerName default.invalid
+    DocumentRoot /var/www/empty
+
+    <Location />
+        Require all denied
+    </Location>
+
+    SSLEngine on
+    SSLCertificateFile      /etc/letsencrypt/live/example.com/fullchain.pem
+    SSLCertificateKeyFile   /etc/letsencrypt/live/example.com/privkey.pem
+    Include /etc/letsencrypt/options-ssl-apache.conf
+</VirtualHost>
+
+
+# ===========================================================================
+# 4. SITES - one line per vhost
+# ===========================================================================
+# Both macros take the certificate LINEAGE NAME, i.e. the directory name under
+# /etc/letsencrypt/live/. When one certificate covers both the apex and the www
+# name, that name is usually the apex.
+#
+# Adding a site: get the certificate FIRST, then add the lines, then reload.
+# Apache refuses to start if SSLCertificateFile points at a missing file, so the
+# reverse order takes every site down. Full procedure in the README.
+
+#                apex          -> www              cert lineage
+Use RedirectSite example.com      www.example.com    example.com
+Use RedirectSite example.org      www.example.org    example.org
+
+#                domain           approot            cert lineage
+Use LaravelSite www.example.com    myapp              example.com
+Use LaravelSite www.example.org    myproject/api      example.org
+
+# Release the macros, so a later Include cannot silently redefine them.
+UndefMacro RedirectSite
+UndefMacro LaravelSite
+
+</IfModule>
