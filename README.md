@@ -39,6 +39,125 @@ Or
 ### 4. Run certification (optional for local development)
 - Run `make certs`
 
+## Adding a site
+
+Assumes the multi-site vhost layout from `templates/vhosts/prod.conf.example`,
+copied to `config/vhosts/default.conf`. One site is two lines of config there,
+but the **order of the steps below matters**: Apache refuses to start when
+`SSLCertificateFile` points at a file that does not exist, so adding the vhost
+before the certificate takes down every site on the server.
+
+### 1. Put the application in place
+
+```
+www/myapp/            <- application root, must contain public/
+```
+
+The `LaravelSite` macro always serves `<approot>/public`. Nested paths work, so
+an API in `www/myproject/api` gives an `approot` of `myproject/api`.
+
+### 2. Point DNS at the server
+
+Two `A` records — the apex and the `www` name — both to the server IP. Wait for
+them to resolve before the next step: certbot validates over HTTP and fails on
+records that have not propagated.
+
+```bash
+dig +short example.com www.example.com
+```
+
+### 3. Get the certificate — before touching the vhost
+
+One certificate covering both names, so both macros can share a single lineage:
+
+```bash
+docker compose exec webserver certbot certonly \
+  --webroot -w /var/www/empty \
+  -d example.com -d www.example.com \
+  --agree-tos -m you@example.com --no-eff-email
+```
+
+This works because the port-80 catch-all vhost serves `/var/www/empty` and
+excludes `/.well-known/acme-challenge/` from its HTTPS redirect. Nothing else is
+reachable over plain HTTP.
+
+The lineage is created at `/etc/letsencrypt/live/example.com/`, which is
+`config/ssl/letsencrypt/live/example.com/` on the host. Check it:
+
+```bash
+ls config/ssl/letsencrypt/live/
+```
+
+> Once the site is declared (step 4), `make certs` does this for you: it reads
+> the `Use RedirectSite` / `Use LaravelSite` lines, groups the domains by
+> certificate lineage and issues one certificate per lineage. It is safe to
+> re-run — existing certificates are kept until they near expiry. Add
+> `ARGS=--dry-run` to rehearse without consuming Let's Encrypt quota.
+>
+> For a brand new site you still need the explicit command above, because the
+> vhost cannot be declared before its certificate exists. `make certs` is for
+> everything afterwards.
+
+### 4. Declare the site
+
+Two lines in the sites section of `config/vhosts/default.conf`:
+
+```apache
+#                apex          -> www              cert lineage
+Use RedirectSite example.com      www.example.com    example.com
+
+#                domain           approot            cert lineage
+Use LaravelSite www.example.com    myapp              example.com
+```
+
+Drop the `RedirectSite` line if you do not want an apex-to-www redirect. Keep
+the `default.invalid` vhost first among the `:443` blocks — it is what answers
+scanners hitting the bare IP.
+
+### 5. Validate and reload
+
+```bash
+docker compose exec webserver apachectl -t          # must print "Syntax OK"
+make apache-restart
+```
+
+`apachectl -t` first is not optional: a graceful reload returns success even
+when it fails, and silently keeps the previous configuration.
+
+### 6. Check the result
+
+```bash
+docker compose exec webserver apachectl -S 2>&1 \
+  | sed -n '/VirtualHost configuration/,/^ServerRoot/p'
+```
+
+Your two new vhosts should be listed, `default.invalid` still first on `:443`,
+and `catchall.invalid` still alone on `:80`.
+
+Then, from outside:
+
+```bash
+curl -sI http://example.com/ | head -1                  # 301 to HTTPS
+curl -sI https://example.com/ | head -1                 # 301 to www
+curl -sI https://www.example.com/ | head -1             # 200
+```
+
+### 7. Two things to finish
+
+**`open_basedir`** only fails at runtime, never at `apachectl -t`. Browse the
+app, upload a file, hit a page that writes to cache, then:
+
+```bash
+grep -ri open_basedir logs/apache2/www.example.com-error.log
+```
+
+Empty means you are done. Otherwise the message names the rejected path — add
+its prefix to the `open_basedir` value in the macro.
+
+**HSTS** is enabled by the macro. Browsers cache it for a year and refuse to
+fall back to HTTP, so if you are not yet confident in the HTTPS setup, comment
+the `Strict-Transport-Security` line out until you are.
+
 ## Connecting to the database
 
 MySQL and Redis are published on `127.0.0.1` only (see `docker-compose.yml`).
