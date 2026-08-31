@@ -104,7 +104,13 @@ RUN a2enmod ssl && a2enmod rewrite
 # Enable apache modules
 # proxy/proxy_wstunnel: reverse-proxy websocket (Laravel Reverb & co)
 # expires/deflate: cache et compression des assets statiques cote origine
-RUN a2enmod rewrite headers proxy proxy_http proxy_wstunnel expires deflate
+# macro: factorise les vhosts (cf. templates/vhosts/prod.conf.example)
+RUN a2enmod rewrite headers proxy proxy_http proxy_wstunnel expires deflate macro
+
+# DocumentRoot du vhost catch-all :80. Doit exister et rester vide : c'est ce
+# qui empeche Apache de retomber sur /var/www/html et de servir toute
+# l'arborescence de www/ en clair.
+RUN mkdir -p /var/www/empty
 
 # Install certbot
 RUN apt-get update && \
