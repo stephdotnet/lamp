@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        image: [mysql8, php82, redis]
+        image: [mysql8, php82]
 
     runs-on: ubuntu-latest
     permissions:

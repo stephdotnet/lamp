@@ -1,0 +1,12 @@
+# Ces fichiers sont executes ou parses par un serveur Linux. Un CRLF les casse,
+# souvent silencieusement : shebang invalide, continuation de ligne "\" rompue,
+# bloc { } de logrotate ignore. Le depot n'avait pas de .gitattributes et
+# core.autocrlf=true est actif cote poste Windows, d'ou le garde-fou.
+*.sh                text eol=lf
+*.conf              text eol=lf
+*.conf.example      text eol=lf
+*.ini               text eol=lf
+Dockerfile          text eol=lf
+docker-compose.yml  text eol=lf
+Makefile            text eol=lf
+.env.example        text eol=lf

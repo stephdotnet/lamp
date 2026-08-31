@@ -13,3 +13,11 @@ if [ ! -f config/vhosts/default.conf ]; then
 else
     echo "default.conf file exists, no action taken"
 fi
+
+if [ ! -f config/php/php-local.ini ]; then
+    mkdir -p config/php
+    cp templates/php/php-local.ini config/php/php-local.ini
+    echo "php-local.ini file created"
+else
+    echo "php-local.ini file exists, no action taken"
+fi

@@ -72,6 +72,20 @@ certs-renew:
 apache-restart:
 	docker compose exec webserver service apache2 restart
 
+# Tunnels SSH vers les services bindes sur 127.0.0.1 du VPS.
+# Rien n'est expose sur Internet : c'est le tunnel qui donne l'acces.
+.PHONY: adminer
+adminer: ## Adminer du VPS sur http://127.0.0.1:$(HOST_MACHINE_ADMINER_PORT). Usage : make adminer VPS=user@ip
+	@test -n "$(VPS)" || { echo "Usage: make adminer VPS=user@ip"; exit 1; }
+	@echo "Adminer -> http://127.0.0.1:$(HOST_MACHINE_ADMINER_PORT)  (Ctrl+C pour fermer)"
+	ssh -N -L $(HOST_MACHINE_ADMINER_PORT):127.0.0.1:$(HOST_MACHINE_ADMINER_PORT) $(VPS)
+
+.PHONY: db-tunnel
+db-tunnel: ## MySQL du VPS sur 127.0.0.1:3307. Usage : make db-tunnel VPS=user@ip
+	@test -n "$(VPS)" || { echo "Usage: make db-tunnel VPS=user@ip"; exit 1; }
+	@echo "MySQL -> 127.0.0.1:3307  (Ctrl+C pour fermer)"
+	ssh -N -L 3307:127.0.0.1:$(HOST_MACHINE_MYSQL_PORT) $(VPS)
+
 .PHONY: mailhog
 mailhog:
 	docker run -d -p 1025:1025 -p 8025:8025 mailhog/mailhog
