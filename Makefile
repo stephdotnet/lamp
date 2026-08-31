@@ -61,16 +61,25 @@ node-cli: ## [CMD=]
 	docker compose exec -it node bash
 
 .PHONY: certs
-certs:
-	docker compose exec -e EMAIL_ADMIN=$(EMAIL_ADMIN) webserver sh /etc/apache2/ssl/certify.sh
+certs: ## Certifie les sites declares dans le vhost. [ARGS=--dry-run]
+	docker compose exec \
+		-e EMAIL_ADMIN=$(EMAIL_ADMIN) \
+		-e CERTIFY_BASE_VIRTUAL_HOST=$(CERTIFY_BASE_VIRTUAL_HOST) \
+		-e CERTBOT_EXTRA_ARGS="$(ARGS)" \
+		webserver sh /etc/apache2/ssl/certify.sh
 
 .PHONY: certs-renew
 certs-renew:
 	docker compose exec webserver certbot renew
 
+# `service apache2 restart` tuerait PID 1 (apache2 tourne en foreground), donc le
+# conteneur entier : exit 143 et coupure de service. `-k graceful` recharge le
+# master en place. `-t` d'abord, car graceful renvoie 0 meme en echec et garde
+# alors silencieusement l'ancienne config.
 .PHONY: apache-restart
-apache-restart:
-	docker compose exec webserver service apache2 restart
+apache-restart: ## Recharge la config Apache sans couper les connexions
+	docker compose exec webserver apachectl -t
+	docker compose exec webserver apachectl -k graceful
 
 # Tunnels SSH vers les services bindes sur 127.0.0.1 du VPS.
 # Rien n'est expose sur Internet : c'est le tunnel qui donne l'acces.
