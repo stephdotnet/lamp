@@ -30,18 +30,29 @@ if [ -z "${EMAIL_ADMIN:-}" ]; then
     exit 1
 fi
 
-# Une paire "lineage domaine" par vhost declare. Le lineage est le dernier
-# argument des deux macros, le domaine servi est le premier.
-#   Use RedirectSite <from>   <to>      <cert>
-#   Use LaravelSite  <domain> <approot> <cert>
+# Une paire "lineage domaine" par vhost declare. Le lineage est le 3e argument
+# de chaque macro (champ 5 de la ligne), le domaine servi est le 1er (champ 3).
+#   Use RedirectSite      <from>   <to>      <cert>
+#   Use LaravelSite       <domain> <approot> <cert>
+#   Use LaravelReverbSite <domain> <approot> <cert> <wsbackend>
+#
+# Le filtre porte sur le NOM DE MACRO : toute nouvelle macro de site doit etre
+# ajoutee ici, sinon les domaines qu'elle declare sont silencieusement absents
+# de `make certs` et leur certificat n'est jamais renouvele. La panne
+# n'apparait que ~90 jours plus tard, en erreur TLS.
+#
+# Le lineage doit rester en 3e position dans toute nouvelle macro, c'est ce qui
+# permet de toutes les lire avec une seule regle.
 PAIRS=$(awk '
-    $1 == "Use" && ($2 == "RedirectSite" || $2 == "LaravelSite") && NF >= 5 {
+    $1 == "Use" \
+    && ($2 == "RedirectSite" || $2 == "LaravelSite" || $2 == "LaravelReverbSite") \
+    && NF >= 5 {
         print $5, $3
     }
 ' "$VIRTUAL_HOST_FILE")
 
 if [ -z "$PAIRS" ]; then
-    echo "Aucune ligne 'Use RedirectSite' / 'Use LaravelSite' dans $VIRTUAL_HOST_FILE." >&2
+    echo "Aucune ligne 'Use RedirectSite' / 'Use LaravelSite' / 'Use LaravelReverbSite' dans $VIRTUAL_HOST_FILE." >&2
     echo "Rien a certifier." >&2
     exit 1
 fi
