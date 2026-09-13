@@ -89,8 +89,9 @@ ls config/ssl/letsencrypt/live/
 ```
 
 > Once the site is declared (step 4), `make certs` does this for you: it reads
-> the `Use RedirectSite` / `Use LaravelSite` lines, groups the domains by
-> certificate lineage and issues one certificate per lineage. It is safe to
+> the `Use RedirectSite` / `Use LaravelSite` / `Use LaravelReverbSite` lines,
+> groups the domains by certificate lineage and issues one certificate per
+> lineage. It is safe to
 > re-run — existing certificates are kept until they near expiry. Add
 > `ARGS=--dry-run` to rehearse without consuming Let's Encrypt quota.
 >
@@ -113,6 +114,25 @@ Use LaravelSite www.example.com    myapp              example.com
 Drop the `RedirectSite` line if you do not want an apex-to-www redirect. Keep
 the `default.invalid` vhost first among the `:443` blocks — it is what answers
 scanners hitting the bare IP.
+
+**If the app has a websocket backend** (Laravel Reverb, Soketi...), use
+`LaravelReverbSite` instead. Same three arguments, plus the internal address of
+the websocket server:
+
+```apache
+#                     domain           approot   cert lineage   ws backend
+Use LaravelReverbSite www.example.net   mygame    example.net    reverb:8080
+```
+
+`reverb:8080` is a service name on the shared compose network, not a public
+domain: the backend is never exposed, the browser only ever reaches
+`wss://www.example.net/app/...`. Only `/app` is proxied — `/apps` is the
+event-publishing API and the application reaches it directly over the network.
+
+The websocket container is not part of this stack. It belongs to the
+application's own compose file, attached to the `lamp_default` network as
+`external`. Keeping it out of here is deliberate: a single path variable in this
+repo would mean only one project on the machine could ever have workers.
 
 ### 5. Validate and reload
 
