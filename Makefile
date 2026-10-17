@@ -1,6 +1,9 @@
 include .env
 export
 
+# Absent des .env crees avant l'ajout de Beszel
+HOST_MACHINE_BESZEL_PORT ?= 8090
+
 .PHONY: help
 help:
 	make -qp | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$$)/ {split($$1,A,/ /);print A[1]}' | sort
@@ -94,6 +97,12 @@ db-tunnel: ## MySQL du VPS sur 127.0.0.1:3307. Usage : make db-tunnel VPS=user@i
 	@test -n "$(VPS)" || { echo "Usage: make db-tunnel VPS=user@ip"; exit 1; }
 	@echo "MySQL -> 127.0.0.1:3307  (Ctrl+C pour fermer)"
 	ssh -N -L 3307:127.0.0.1:$(HOST_MACHINE_MYSQL_PORT) $(VPS)
+
+.PHONY: beszel
+beszel: ## Monitoring Beszel du VPS sur http://127.0.0.1:$(HOST_MACHINE_BESZEL_PORT). Usage : make beszel VPS=user@ip
+	@test -n "$(VPS)" || { echo "Usage: make beszel VPS=user@ip"; exit 1; }
+	@echo "Beszel -> http://127.0.0.1:$(HOST_MACHINE_BESZEL_PORT)  (Ctrl+C pour fermer)"
+	ssh -N -L $(HOST_MACHINE_BESZEL_PORT):127.0.0.1:$(HOST_MACHINE_BESZEL_PORT) $(VPS)
 
 .PHONY: mailhog
 mailhog:
