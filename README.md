@@ -276,3 +276,41 @@ Host myvps
 
 A plain `ssh myvps` then opens both, and any client can point at
 `127.0.0.1:3307`.
+
+## Monitoring
+
+[Beszel](https://beszel.dev) keeps the history of CPU, memory, swap, disk and
+network for the machine and for each container, and sends alerts. Both
+containers sit in the `monitoring` compose profile, so they never start on a
+development machine. Like Adminer, the hub is bound to `127.0.0.1` and reached
+through an SSH tunnel.
+
+On the server:
+
+1. Start the hub alone, the agent needs a key it hands out:
+
+   ```bash
+   docker compose --profile monitoring up -d beszel
+   ```
+
+2. From your machine, open the tunnel with `make beszel VPS=user@your-server`,
+   then <http://127.0.0.1:8090> (`HOST_MACHINE_BESZEL_PORT`). The first visit
+   creates the admin account.
+3. Click **Add System**, enter `/beszel_socket/beszel.sock` as **Host / IP**,
+   and copy the key and the token it shows into the server's `.env`, **without
+   quotes** (the Makefile includes `.env` and would pass them on verbatim):
+
+   ```dotenv
+   COMPOSE_PROFILES=monitoring
+   BESZEL_AGENT_KEY=ssh-ed25519 AAAA...
+   BESZEL_AGENT_TOKEN=...
+   ```
+
+4. `docker compose up -d`, then confirm **Add System** in the hub: the system
+   turns green.
+5. Set up a channel in **Settings > Notifications** (ntfy, Telegram, Discord,
+   email…), then the alerts from the bell on the system: disk above 80 %,
+   memory above 90 %, status down.
+
+> A hub running on the server it watches cannot report that this server is
+> down. Pair it with an external check (UptimeRobot, Healthchecks.io…).
