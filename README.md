@@ -314,3 +314,48 @@ On the server:
 
 > A hub running on the server it watches cannot report that this server is
 > down. Pair it with an external check (UptimeRobot, Healthchecks.io…).
+
+## Apache event + PHP-FPM
+
+The `webserver` service comes in two variants, picked in `.env`:
+
+| | `bin/php82` (default) | `bin/php82-fpm` |
+|---|---|---|
+| PHP | mod_php, inside Apache | PHP-FPM, same container (`start.sh`) |
+| Apache MPM | prefork: one ~35 MB process per connection | event: one thread per connection |
+| Websockets proxied to Reverb | one process each, while open | one thread each |
+| Limits | `bin/php82/mpm_prefork.conf` (40 workers) | `bin/php82-fpm/mpm_event.conf` (256 connections), `bin/php82-fpm/pool.conf` (8 PHP processes) |
+
+Behind prefork, every open websocket holds a worker, so 40 workers cap a game
+server at about 30 connected players. With event, connections are cheap and PHP
+has its own ceiling: the limit becomes the CPU.
+
+Everything else is shared: service name, mounts, `php.ini`, vhosts, certbot,
+`docker compose exec webserver php …`. The vhost template works with both
+(`<IfModule php_module>` around the mod_php-only directives). Errors from PHP
+land in `docker logs <project>-webserver` instead of the Apache error log.
+
+**Switching**, on the server:
+
+1. The vhosts must not use mod_php directives outside an `<IfModule php_module>`
+   block, or Apache refuses to start under FPM. A vhost file copied from an
+   older template needs the `open_basedir` and `uploads` blocks of
+   `LaravelSiteBody` as they are now in the template, then a reload while still
+   on mod_php, which behaves exactly as before:
+
+   ```bash
+   make apache-restart
+   grep -rnE "php_(admin_)?(value|flag)" config/vhosts/ www/*/.htaccess www/*/public/.htaccess
+   ```
+
+   Every hit must sit inside an `<IfModule php_module>` block.
+2. Uncomment `WEBSERVER_BUILD` and `WEBSERVER_IMAGE` in `.env`, then pull the
+   image built by the CI and recreate the container (a few seconds of downtime):
+
+   ```bash
+   docker compose pull webserver && docker compose up -d webserver
+   ```
+
+**Rolling back**: comment the two lines again and `docker compose up -d
+webserver`. The previous image is still there as long as nobody ran
+`docker image prune -a` in between.
