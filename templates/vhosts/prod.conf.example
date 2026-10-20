@@ -5,9 +5,9 @@
 # real file with your real domains stays out of version control; this example is
 # the versioned reference.
 #
-# Requires, in the php82 image: `a2enmod ssl macro headers rewrite deflate` and,
+# Requires, in the webserver image: `a2enmod ssl macro headers rewrite deflate` and,
 # for LaravelReverbSite, `proxy proxy_http proxy_wstunnel`, plus the
-# /var/www/empty directory. All already handled in bin/php82/Dockerfile.
+# /var/www/empty directory. All already handled in bin/php82 and bin/php82-fpm.
 #
 # Always validate before reloading:
 #     docker compose exec webserver apachectl -t
@@ -90,14 +90,26 @@
     # "/myapp" without it would also match "/myapp-old".
     #
     # Known limits: open_basedir does not restrict exec()/shell_exec(), and
-    # with mod_php every vhost runs as www-data, so file ownership cannot
-    # separate applications. Real per-app isolation requires php-fpm pools.
-    php_admin_value open_basedir "${APACHE_DOCUMENT_ROOT}/$approot/:/tmp/:/usr/local/lib/php/:/dev/urandom"
+    # every vhost runs as www-data, so file ownership cannot separate
+    # applications. Real per-app isolation requires one php-fpm pool per app.
+    #
+    # Both webserver variants read this file: mod_php takes the directive, and
+    # PHP-FPM (bin/php82-fpm) the same value as a FastCGI parameter, set again
+    # on every request. Without the IfModule, Apache refuses to start under FPM.
+    <IfModule php_module>
+        php_admin_value open_basedir "${APACHE_DOCUMENT_ROOT}/$approot/:/tmp/:/usr/local/lib/php/:/dev/urandom"
+    </IfModule>
+    <IfModule !php_module>
+        SetEnv PHP_ADMIN_VALUE "open_basedir=${APACHE_DOCUMENT_ROOT}/$approot/:/tmp/:/usr/local/lib/php/:/dev/urandom"
+    </IfModule>
 
-    # No PHP execution in upload directories: a poorly filtered upload
-    # landing as an executable .php file is the most common webshell route.
+    # No PHP in upload directories: a poorly filtered upload landing as an
+    # executable .php file is the most common webshell route. Refused outright
+    # rather than `engine off`, which served the source as plain text.
     <Directory ${APACHE_DOCUMENT_ROOT}/$approot/public/uploads>
-        php_admin_flag engine off
+        <FilesMatch "\.(php|phar|phtml)$">
+            Require all denied
+        </FilesMatch>
     </Directory>
 
     <Directory ${APACHE_DOCUMENT_ROOT}/$approot/public>
@@ -157,7 +169,7 @@
 # The rewrite must sit at vhost level, before the Laravel front controller: the
 # .htaccess rules run in directory context, which comes later.
 #
-# Requires proxy_wstunnel, already enabled in bin/php82/Dockerfile.
+# Requires proxy_wstunnel, already enabled in both webserver images.
 #
 # IMPORTANT: config/ssl/certify.sh matches on the macro NAME to collect the
 # domains it must certify. A new macro name has to be added to its awk filter,

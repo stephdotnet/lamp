@@ -1,7 +1,11 @@
 services:
   webserver:
+    # Variante d'image : bin/php82 (mod_php + prefork) par defaut, ou
+    # bin/php82-fpm (PHP-FPM + mpm_event). Bascule et retour arriere par .env,
+    # sans toucher a ce fichier : cf. README, "Apache event + PHP-FPM".
     build:
-      context: ./bin/php82
+      context: ${WEBSERVER_BUILD-./bin/php82}
+    image: ${WEBSERVER_IMAGE-${COMPOSE_PROJECT_NAME}-webserver}
     container_name: "${COMPOSE_PROJECT_NAME}-webserver"
     restart: "always"
     ports:
@@ -12,7 +16,11 @@ services:
     volumes:
       - ${DOCUMENT_ROOT-./www}:/var/www/html:rw
       - ${PHP_INI-./config/php/php.ini}:/usr/local/etc/php/php.ini
+      # Reglages des deux variantes, montes pour etre ajustes sans rebuild ;
+      # chaque image ignore ceux de l'autre (module ou FPM absent).
       - ./bin/php82/mpm_prefork.conf:/etc/apache2/mods-available/mpm_prefork.conf:ro
+      - ./bin/php82-fpm/mpm_event.conf:/etc/apache2/mods-available/mpm_event.conf:ro
+      - ./bin/php82-fpm/pool.conf:/usr/local/etc/php-fpm.d/zz-lamp.conf:ro
       - ${SSL_DIR-./config/ssl}:/etc/apache2/ssl/
       - ${SSL_DIR-./config/ssl}/letsencrypt:/etc/letsencrypt/
       - ${VHOSTS_DIR-./config/vhosts}:/etc/apache2/sites-enabled
