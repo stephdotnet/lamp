@@ -12,7 +12,8 @@
 # ne changent pas. Bascule et retour arriere : WEBSERVER_BUILD dans .env.
 #
 # Debian 12 "bookworm", meme raison que bin/php82 : pas de -buster (EOL).
-FROM php:8.2-fpm-bookworm
+# Version de PHP figee, meme raison que bin/php82.
+FROM php:8.2.35-fpm-bookworm
 
 ARG DEBIAN_FRONTEND=noninteractive
 

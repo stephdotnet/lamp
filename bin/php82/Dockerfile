@@ -1,7 +1,11 @@
 # Debian 12 "bookworm". NE PAS revenir sur -buster : Debian 10 est EOL depuis
 # juin 2024 et ses paquets ont ete deplaces vers archive.debian.org, donc le
 # premier `apt-get update` part en 404 et tout rebuild echoue.
-FROM php:8.2-apache-bookworm
+#
+# Version de PHP figee : le tag flottant 8.2-* peut rester sur une version
+# vulnerable des heures apres un correctif (8.2.34 le jour de PHP2Shell,
+# CVE-2026-109618/109619). A remonter a la main a chaque release de securite.
+FROM php:8.2.35-apache-bookworm
 
 # Surpresses debconf complaints of trying to install apt packages interactively
 # https://github.com/moby/moby/issues/4032#issuecomment-192327844
