@@ -324,7 +324,7 @@ The `webserver` service comes in two variants, picked in `.env`:
 | PHP | mod_php, inside Apache | PHP-FPM, same container (`start.sh`) |
 | Apache MPM | prefork: one ~35 MB process per connection | event: one thread per connection |
 | Websockets proxied to Reverb | one process each, while open | one thread each |
-| Limits | `bin/php82/mpm_prefork.conf` (40 workers) | `bin/php82-fpm/mpm_event.conf` (256 connections), `bin/php82-fpm/pool.conf` (8 PHP processes) |
+| Limits | `bin/php82/mpm_prefork.conf` (40 workers) | `bin/php82-fpm/mpm_event.conf` (1024 connections), `bin/php82-fpm/pool.conf` (8 PHP processes) |
 
 Behind prefork, every open websocket holds a worker, so 40 workers cap a game
 server at about 30 connected players. With event, connections are cheap and PHP
